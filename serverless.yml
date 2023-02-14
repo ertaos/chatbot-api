@@ -1,0 +1,24 @@
+service: ertaos-chatbot-api
+
+provider:
+  name: aws
+  region: eu-central-1
+  runtime: nodejs18.x
+  versionFunctions: false
+  stage: ${opt:stage, 'dev'}
+
+custom:
+  openAISecrets: ${ssm:/aws/reference/secretsmanager/OpenAICredentials/ertaosBot}
+
+functions:
+  askQuestion:
+    handler: app.askQuestion
+    timeout: 7
+    events:
+      - http:
+          method: POST
+          path: askQuestion
+          cors: true
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: ${ssm(raw):/aws/reference/secretsmanager/GoogleApplicationCredentials/ertaosBot}
+      OPENAI_API_KEY: ${self:custom.openAISecrets.ApiKey}

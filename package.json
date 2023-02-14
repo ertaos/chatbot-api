@@ -1,0 +1,19 @@
+{
+  "name": "ertaos-chatbot-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "deploy:dev": "sls deploy --stage dev",
+    "deploy:qa": "sls deploy --stage qa",
+    "deploy:prod": "sls deploy --stage prod"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/translate": "^7.1.0",
+    "openai": "^3.1.0",
+    "serverless": "^3.27.0"
+  }
+}
