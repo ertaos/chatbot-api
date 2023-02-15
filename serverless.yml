@@ -1,5 +1,9 @@
 service: ertaos-chatbot-api
 
+plugins:
+  - serverless-certificate-creator
+  - serverless-domain-manager
+
 provider:
   name: aws
   region: eu-central-1
@@ -9,6 +13,18 @@ provider:
 
 custom:
   openAISecrets: ${ssm:/aws/reference/secretsmanager/OpenAICredentials/ertaosBot}
+  customCertificate:
+    certificateName: ${self:provider.stage}-api-chatbot.ertaos.com
+    tags:
+      createdBy: 'serverless'
+      environment: ${self:provider.stage}
+      application: ertaos-chatbot-api
+  customDomain:
+    domainName: ${self:provider.stage}-api-chatbot.ertaos.com
+    basePath: ''
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+    autoDomain: true
 
 functions:
   askQuestion:

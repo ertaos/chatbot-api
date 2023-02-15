@@ -4,9 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "deploy:dev": "sls deploy --stage dev",
-    "deploy:qa": "sls deploy --stage qa",
-    "deploy:prod": "sls deploy --stage prod"
+    "deploy:dev": "sls create-cert --stage dev && sls deploy --stage dev",
+    "deploy:prod": "sls create-cert --stage prod && sls deploy --stage prod"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +13,8 @@
   "dependencies": {
     "@google-cloud/translate": "^7.1.0",
     "openai": "^3.1.0",
-    "serverless": "^3.27.0"
+    "serverless": "^3.27.0",
+    "serverless-certificate-creator": "^1.6.0",
+    "serverless-domain-manager": "^6.4.2"
   }
 }
