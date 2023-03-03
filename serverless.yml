@@ -10,6 +10,13 @@ provider:
   runtime: nodejs18.x
   versionFunctions: false
   stage: ${opt:stage, 'dev'}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: '*'
+          Resource:
+            Fn::GetAtt: [ conversationsTable, Arn ]
 
 custom:
   openAISecrets: ${ssm:/aws/reference/secretsmanager/OpenAICredentials/ertaosBot}
@@ -28,8 +35,8 @@ custom:
 
 functions:
   askQuestion:
-    handler: app.askQuestion
-    timeout: 7
+    handler: dist/app.askQuestion
+    timeout: 10
     events:
       - http:
           method: POST
@@ -38,3 +45,21 @@ functions:
     environment:
       GOOGLE_APPLICATION_CREDENTIALS: ${ssm(raw):/aws/reference/secretsmanager/GoogleApplicationCredentials/ertaosBot}
       OPENAI_API_KEY: ${self:custom.openAISecrets.ApiKey}
+      CONVERSATIONS_TABLE: ertaos-chatbot-conversations-${self:provider.stage}
+
+resources:
+  Resources:
+    conversationsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ertaos-chatbot-conversations-${self:provider.stage}
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        AttributeDefinitions:
+          - AttributeName: conversationId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: conversationId
+            KeyType: HASH
+

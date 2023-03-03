@@ -4,17 +4,30 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "deploy:dev": "sls create-cert --stage dev && sls deploy --stage dev",
-    "deploy:prod": "sls create-cert --stage prod && sls deploy --stage prod"
+    "clean": "rimraf ./dist",
+    "build": "npm run clean && tsc",
+    "deploy:dev": "npm run build && sls create-cert --stage dev && sls deploy --stage dev",
+    "deploy:prod": "npm run build && sls create-cert --stage prod && sls deploy --stage prod"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.282.0",
+    "@aws-sdk/util-dynamodb": "^3.282.0",
     "@google-cloud/translate": "^7.1.0",
-    "openai": "^3.1.0",
+    "body-parser": "^1.20.2",
+    "express": "^4.18.2",
+    "openai": "^3.2.1",
     "serverless": "^3.27.0",
     "serverless-certificate-creator": "^1.6.0",
-    "serverless-domain-manager": "^6.4.2"
+    "serverless-domain-manager": "^6.4.2",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.111",
+    "@types/uuid": "^9.0.1",
+    "aws-lambda": "^1.0.7",
+    "typescript": "^4.9.5"
   }
 }
