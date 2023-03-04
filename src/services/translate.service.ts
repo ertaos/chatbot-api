@@ -1,6 +1,5 @@
-import * as console from "console";
-
 const { Translate } = require('@google-cloud/translate').v2
+import * as console from 'console'
 
 const translateService = new Translate(
     {

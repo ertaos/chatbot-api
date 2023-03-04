@@ -5,7 +5,7 @@ import { sendMessage } from './services/openai.service'
 import { APIGatewayEvent } from 'aws-lambda'
 import * as console from 'console'
 import { ChatCompletionRequestMessage } from 'openai/api'
-
+import { v4 as uuidv4 } from 'uuid'
 
 export const askQuestion = async (event: APIGatewayEvent) => {
     if (!event.body) return sendHttpResponse(400, { error: 'NO_EVENT_BODY' })
@@ -20,15 +20,22 @@ export const askQuestion = async (event: APIGatewayEvent) => {
     console.log(`message - ${message}`)
     const messageInEnglish = await translate(message, 'en')
 
-    if (conversationId) {
-        const conversation = await getConversation(conversationId)
-        if (!conversation) return sendHttpResponse(400, { error: `WRONG_CONVERSATION_ID - ${conversationId}`})
+    let conversation
+    if (conversationId) conversation = await getConversation(conversationId)
+
+    if (conversation) {
+        // Store client messages
+        conversation.conversationGeo.push({
+            role: ConversationRoles.User,
+            content: message
+        })
         conversation.conversationEng.push({
             role: ConversationRoles.User,
             content: messageInEnglish
         })
 
-        const response = await sendMessage(conversation.conversationEng)
+        // Send only last 10 message to openAI
+        const response = await sendMessage(conversation.conversationEng.slice(-10), conversationId)
         if (!response) {
             console.log('NO_RESPONSE')
             return sendHttpResponse(500)
@@ -42,6 +49,12 @@ export const askQuestion = async (event: APIGatewayEvent) => {
         }
 
         const messageInGeorgian = await translate(lastItem.message.content, 'ka')
+
+        // Store Assistant messages
+        conversation.conversationEng.push({
+            role: lastItem.message.role,
+            content: lastItem.message.content
+        })
         conversation.conversationGeo.push({
             role: lastItem.message.role,
             content: messageInGeorgian
@@ -50,46 +63,46 @@ export const askQuestion = async (event: APIGatewayEvent) => {
         await updateConversation(conversation)
         return sendHttpResponse(200, { message: messageInGeorgian })
     }
-    else {
-        const conversationGeo: Array<ChatCompletionRequestMessage> = [
-            {
-                role: ConversationRoles.User,
-                content: message
-            }
-        ]
-        const conversationEng: Array<ChatCompletionRequestMessage> = [
-            {
-                role: ConversationRoles.User,
-                content: messageInEnglish
-            }
-        ]
 
-        const response = await sendMessage(conversationEng)
-        if (response) {
-            const lastItem = response.pop()
-            if (!lastItem || !lastItem.message) {
-                console.log('BAD_ITEM')
-                console.log(lastItem)
-                return sendHttpResponse(500)
-            }
+    // New conversation flow
+    conversationId = uuidv4()
+    const conversationGeo: Array<ChatCompletionRequestMessage> = [
+        {
+            role: ConversationRoles.User,
+            content: message
+        }
+    ]
+    const conversationEng: Array<ChatCompletionRequestMessage> = [
+        {
+            role: ConversationRoles.User,
+            content: messageInEnglish
+        }
+    ]
 
-            const messageInGeorgian = await translate(lastItem.message.content, 'ka')
-
-            conversationEng.push(lastItem.message)
-            conversationGeo.push(
-                {
-                    role: ConversationRoles.Assistant,
-                    content: messageInGeorgian
-                }
-            )
-
-            const conversationId = await createConversation(conversationEng, conversationGeo, ipAddress)
-            return sendHttpResponse(200, { conversationId, message : messageInGeorgian })
-
-        } else {
-            console.log('NO_RESPONSE')
+    const response = await sendMessage(conversationEng, conversationId)
+    if (response) {
+        const lastItem = response.pop()
+        if (!lastItem || !lastItem.message) {
+            console.log('BAD_ITEM')
+            console.log(lastItem)
             return sendHttpResponse(500)
         }
 
+        const messageInGeorgian = await translate(lastItem.message.content, 'ka')
+
+        conversationEng.push(lastItem.message)
+        conversationGeo.push(
+            {
+                role: ConversationRoles.Assistant,
+                content: messageInGeorgian
+            }
+        )
+
+        await createConversation(conversationEng, conversationGeo, ipAddress, conversationId)
+        return sendHttpResponse(200, { conversationId, message : messageInGeorgian })
+
+    } else {
+        console.log('NO_RESPONSE')
+        return sendHttpResponse(500)
     }
 }
