@@ -1,7 +1,6 @@
 import { DynamoDBClient, PutItemCommand, PutItemCommandInput, GetItemCommand, GetItemCommandInput } from '@aws-sdk/client-dynamodb'
 import { ChatCompletionRequestMessage } from 'openai'
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
-import { v4 as uuidv4 } from 'uuid'
 import * as console from 'console'
 
 const DDB = new DynamoDBClient({})
@@ -10,8 +9,10 @@ const CONVERSATIONS_TABLE = process.env.CONVERSATIONS_TABLE || ''
 export const createConversation = async(
     conversationEng: Array<ChatCompletionRequestMessage>,
     conversationGeo: Array<ChatCompletionRequestMessage>,
-    ipAddress: string): Promise<string | undefined> => {
-    const conversationId = uuidv4()
+    ipAddress: string,
+    conversationId: string
+): Promise<string | undefined> => {
+    const lastUpdateTime = Date.now()
 
     const params: PutItemCommandInput = {
         TableName: CONVERSATIONS_TABLE,
@@ -19,6 +20,7 @@ export const createConversation = async(
             conversationId,
             conversationEng,
             conversationGeo,
+            lastUpdateTime,
             ipAddress
         })
     }
@@ -56,7 +58,8 @@ export const updateConversation = async(conversation: Conversation) => {
             conversationId: conversation.conversationId,
             ipAddress: conversation.ipAddress,
             conversationEng: conversation.conversationEng,
-            conversationGeo: conversation.conversationGeo
+            conversationGeo: conversation.conversationGeo,
+            lastUpdateTime: Date.now()
         })
     }
     try {
@@ -65,7 +68,6 @@ export const updateConversation = async(conversation: Conversation) => {
         console.log(`Error occurred updateConversation - ${conversation.conversationId}`)
     }
 }
-
 
 export type Conversation = {
     conversationId: string
